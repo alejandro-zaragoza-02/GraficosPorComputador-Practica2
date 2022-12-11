@@ -92,7 +92,7 @@ TPrimitiva::TPrimitiva(int DL, int t)
 
 		    tx =  -1.8;
 		    ty =  0.35;
-		    tz =  35.0;
+		    tz =  -1;
 		    rr =  0.0;
 		    de = 0.85;
 		    gc = 0.0;
@@ -232,7 +232,7 @@ void __fastcall TPrimitiva::Render(int seleccion, bool reflejo)
                 modelMatrix = glm::translate(modelMatrix,glm::vec3(tx, ty, tz));
                 //modelMatrix = glm::rotate(modelMatrix, (float) glm::radians(180.0), glm::vec3(0, 1, 0));
                 modelMatrix = glm::rotate(modelMatrix, (float) glm::radians(gc), glm::vec3(0, 1, 0));
-                modelMatrix = glm::scale(modelMatrix, glm::vec3(0.2, 0.2, 0.2));
+                modelMatrix = glm::scale(modelMatrix, glm::vec3(0.7, 0.7, 0.7));
 
                 modelViewMatrix = escena.viewMatrix * modelMatrix;
 
@@ -254,7 +254,7 @@ void __fastcall TPrimitiva::Render(int seleccion, bool reflejo)
                 // RUEDA Delantera Izquierda : Cálculo de la matriz modelo
                 modelMatrix     = glm::mat4(1.0f); // matriz identidad
 
-                modelMatrix     = glm::translate(modelMatrix, glm::vec3(tx+(-ce*sin(glm::radians(gc)))+de*cos(glm::radians(gc)), ty, ((-ce*cos(glm::radians(gc)))+(tz)-de*sin(glm::radians(gc)))));
+                modelMatrix     = glm::translate(modelMatrix, glm::vec3(tx+(ce*sin(glm::radians(gc)))+de*cos(glm::radians(gc)), ty, ((tz+ce*cos(glm::radians(gc)))-de*sin(glm::radians(gc)))));
                 modelMatrix     = glm::rotate(modelMatrix, (float) glm::radians(gr+gc), glm::vec3(0,1,0));  // en radianes
                 modelMatrix     = glm::rotate(modelMatrix, (float) glm::radians(rr), glm::vec3(1,0,0));  // en radianes
                 modelMatrix = glm::scale(modelMatrix, glm::vec3(1.5, 1.5, 1.5));
@@ -268,7 +268,7 @@ void __fastcall TPrimitiva::Render(int seleccion, bool reflejo)
 
                 // RUEDA Trasera Derecha : Cálculo de la matriz modelo
                 modelMatrix     = glm::mat4(1.0f); // matriz identidad
-                modelMatrix     = glm::translate(modelMatrix, glm::vec3(tx+(-ce*sin(glm::radians(gc)))-de*cos(glm::radians(gc)), ty, ((-ce*cos(glm::radians(gc)))+(tz)+de*sin(glm::radians(gc)))));
+                modelMatrix     = glm::translate(modelMatrix, glm::vec3(tx+(ce*sin(glm::radians(gc)))-de*cos(glm::radians(gc)), ty, ((tz+ce*cos(glm::radians(gc)))+de*sin(glm::radians(gc)))));
                 modelMatrix     = glm::rotate(modelMatrix, (float) glm::radians(gr+gc), glm::vec3(0,1,0));  // en radianes
                 modelMatrix     = glm::rotate(modelMatrix, (float) glm::radians(rr), glm::vec3(1,0,0));  // en radianes
                 modelMatrix = glm::scale(modelMatrix, glm::vec3(1.5, 1.5, 1.5));
@@ -680,6 +680,49 @@ void __fastcall TEscena::Render()
     glutSwapBuffers();
 }
 
+void __fastcall TEscena:: processSelection(int xx, int yy) {
+
+    unsigned char res[4];
+    GLint viewport[4];
+
+    escena.renderSelection();
+
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glReadPixels(xx, viewport[3] - yy, 1,1,GL_RGBA, GL_UNSIGNED_BYTE, &res);
+    switch(res[0]) {
+        case 0: printf("Nothing Picked \n"); break;
+        case 1: printf("Picked yellow\n"); break;
+        case 2: printf("Picked red\n"); break;
+        case 3: printf("Picked green\n"); break;
+        case 4: printf("Picked blue\n"); break;
+        default:printf("Res: %d\n", res[0]);
+    }
+}
+
+void __fastcall TEscena::RenderSelection()
+{
+    glm::mat4 rotateMatrix;
+
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    // Cálculo de la vista (cámara)
+    viewMatrix      = glm::mat4(1.0f);
+    rotateMatrix    = glm::make_mat4(view_rotate);
+    viewMatrix      = glm::translate(viewMatrix,glm::vec3(view_position[0], view_position[1], view_position[2]));
+    viewMatrix      = viewMatrix*rotateMatrix;
+    viewMatrix      = glm::scale(viewMatrix,glm::vec3(scale/100.0, scale/100.0, scale/100.0));
+
+    glUniform1i(uLuz0Location, gui.light0_enabled);
+    glUniformMatrix4fv(uVMatrixLocation, 1, GL_FALSE, glm::value_ptr(viewMatrix)); // Para la luz matrix view pero sin escalado!
+
+    // Dibujar coches
+    RenderCars(seleccion);
+
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
 // Selecciona un objeto a través del ratón
 void __fastcall TEscena::Pick3D(int mouse_x, int mouse_y)
 {
@@ -690,7 +733,7 @@ void __fastcall TEscena::CrearEscenario()
 {
     TPrimitiva *road = new TPrimitiva(CARRETERA_ID, CARRETERA_ID);
     TPrimitiva *car1 = new TPrimitiva(1, COCHE_ID);
-    TPrimitiva *car2 = new TPrimitiva(2, COCHE_2_ID);
+    TPrimitiva *car2 = new TPrimitiva(2, COCHE_ID);
     TPrimitiva *edificio1 = new TPrimitiva(EDIFICIO_ID, EDIFICIO_ID);
     TPrimitiva *edificio2 = new TPrimitiva(EDIFICIO_2_ID, EDIFICIO_2_ID);
     TPrimitiva *ceda = new TPrimitiva(CEDA_ID, CEDA_ID);
@@ -700,8 +743,8 @@ void __fastcall TEscena::CrearEscenario()
     TPrimitiva *farola = new TPrimitiva(FAROLA_ID, FAROLA_ID);
     TPrimitiva *fuente= new TPrimitiva(FUENTE_ID, FUENTE_ID);
 
-
-    car2->ty += 2;
+    car2->colores[0][1] = 0.9;
+    car2->tx += 3.5;
 
     edificio1->colores[0][1]=0.8;
 

@@ -164,6 +164,8 @@ public: // Métodos
 
         void __fastcall InitGL();
 		void __fastcall Render();
+		void __fastcall RenderSelection();
+		void __fastcall processSelection(int xx, int yy);
 		void __fastcall RenderCars(bool reflejo=false);
 		void __fastcall RenderObjects(bool reflejo=false);
 
