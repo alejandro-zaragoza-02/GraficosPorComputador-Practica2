@@ -55,6 +55,7 @@
 #define RESET_ID             400
 
 #define SEL_ID               500
+#define CAMARA_ID            600
 
 // Datos del formato 3DS (x, y, z, A, B, C, u, v)
 #define POSITION_COMPONENT_COUNT    3
@@ -88,7 +89,8 @@ public: // Atributos de la clase
 		float gc, gr;
 		float de;
 		float ce;
-		float colores[2][4];    // Color RGB y canal Alfa
+		float colores[2][4];
+		float colores_copia[2][4];
 
 		float   *modelo0;        // modelo a representar
 		int     num_vertices0;   // número de vértices
@@ -164,8 +166,8 @@ public: // Métodos
 
         void __fastcall InitGL();
 		void __fastcall Render();
-		void __fastcall RenderSelection();
-		void __fastcall processSelection(int xx, int yy);
+		//void __fastcall RenderSelection();
+		//void __fastcall processSelection(int xx, int yy);
 		void __fastcall RenderCars(bool reflejo=false);
 		void __fastcall RenderObjects(bool reflejo=false);
 

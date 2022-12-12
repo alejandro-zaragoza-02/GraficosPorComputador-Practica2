@@ -45,6 +45,7 @@ float coloresr_c[2][4] = { {0.3, 0.3, 0.3, 1.0}, {1.0, 1.0, 1.0, 1.0}}; // Color
 
 TEscena escena;
 TGui    gui;
+int camera_type = 0;
 
 //************************************************************** Clase TPrimitiva
 
@@ -94,10 +95,10 @@ TPrimitiva::TPrimitiva(int DL, int t)
 		    ty =  0.35;
 		    tz =  -1;
 		    rr =  0.0;
-		    de = 0.85;
+		    de = 0.85; // Distancia centro eje hasta la rueda
 		    gc = 0.0;
 		    gr = 0.0;
-		    ce = 5.25;
+		    ce = 5.4; // Distancia entre los ejes
 
 		    memcpy(colores, coloresc_c, 8*sizeof(float));
 
@@ -266,7 +267,7 @@ void __fastcall TPrimitiva::Render(int seleccion, bool reflejo)
 
                 glDrawArrays(GL_TRIANGLES, 0, num_vertices1);
 
-                // RUEDA Trasera Derecha : Cálculo de la matriz modelo
+                // RUEDA Delantera Derecha : Cálculo de la matriz modelo
                 modelMatrix     = glm::mat4(1.0f); // matriz identidad
                 modelMatrix     = glm::translate(modelMatrix, glm::vec3(tx+(ce*sin(glm::radians(gc)))-de*cos(glm::radians(gc)), ty, ((tz+ce*cos(glm::radians(gc)))+de*sin(glm::radians(gc)))));
                 modelMatrix     = glm::rotate(modelMatrix, (float) glm::radians(gr+gc), glm::vec3(0,1,0));  // en radianes
@@ -280,11 +281,11 @@ void __fastcall TPrimitiva::Render(int seleccion, bool reflejo)
 
                 glDrawArrays(GL_TRIANGLES, 0, num_vertices1);
 
-                // RUEDA Delantera Izquierda : Cálculo de la matriz modelo
+                // RUEDA Trasera Izquierda : Cálculo de la matriz modelo
                 modelMatrix     = glm::mat4(1.0f); // matriz identidad
 
                 modelMatrix     = glm::translate(modelMatrix, glm::vec3(tx+de*cos(glm::radians(gc)), ty, tz-de*sin(glm::radians(gc))));
-                modelMatrix     = glm::rotate(modelMatrix, (float) glm::radians(gr+gc), glm::vec3(0,1,0));  // en radianes
+                modelMatrix     = glm::rotate(modelMatrix, (float) glm::radians(gc), glm::vec3(0,1,0));  // en radianes
                 modelMatrix     = glm::rotate(modelMatrix, (float) glm::radians(rr), glm::vec3(1,0,0));  // en radianes
                 modelMatrix = glm::scale(modelMatrix, glm::vec3(1.5, 1.5, 1.5));
 
@@ -298,7 +299,7 @@ void __fastcall TPrimitiva::Render(int seleccion, bool reflejo)
                 // RUEDA Trasera Derecha : Cálculo de la matriz modelo
                 modelMatrix     = glm::mat4(1.0f); // matriz identidad
                 modelMatrix     = glm::translate(modelMatrix, glm::vec3(tx-de*cos(glm::radians(gc)), ty, tz+de*sin(glm::radians(gc))));
-                modelMatrix     = glm::rotate(modelMatrix, (float) glm::radians(gr+gc), glm::vec3(0,1,0));  // en radianes
+                modelMatrix     = glm::rotate(modelMatrix, (float) glm::radians(gc), glm::vec3(0,1,0));  // en radianes
                 modelMatrix     = glm::rotate(modelMatrix, (float) glm::radians(rr), glm::vec3(1,0,0));  // en radianes
                 modelMatrix = glm::scale(modelMatrix, glm::vec3(1.5, 1.5, 1.5));
 
@@ -537,6 +538,8 @@ void __fastcall TEscena::InitGL()
     // Habilita el z_buffer
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    glEnable(GL_STENCIL_TEST);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     // Inicialización de GLEW
     std::cout << "Inicializando GLEW" << std::endl << std::endl;
@@ -637,6 +640,21 @@ void __fastcall TEscena::RenderCars(bool reflejo) {
 
     for (int i=0; i<num_cars; i++)
     {
+        glStencilFunc(GL_ALWAYS, cars[i]->ID, 0xFF);
+
+        if(seleccion==cars[i]->ID){
+            cars[i]->colores[0][0] = 0.1;
+            cars[i]->colores[0][1] = 0.2;
+            cars[i]->colores[0][2] = 0.9;
+            cars[i]->colores[0][3] = 1.0;
+            gui.sel=cars[i]->ID;
+            gui.glui->sync_live();
+        }else{
+            cars[i]->colores[0][0] = cars[i]->colores_copia[0][0];
+            cars[i]->colores[0][1] = cars[i]->colores_copia[0][1];
+            cars[i]->colores[0][2] = cars[i]->colores_copia[0][2];
+            cars[i]->colores[0][3] = cars[i]->colores_copia[0][3];
+        }
         cars[i]->Render(seleccion, reflejo);
     }
 }
@@ -645,8 +663,14 @@ void __fastcall TEscena::RenderCars(bool reflejo) {
 
 void __fastcall TEscena::RenderObjects(bool reflejo) {
 
+    if(seleccion==0){
+        gui.sel=0;
+        gui.glui->sync_live();
+    }
+
     for (int i=0; i<num_objects; i++)
     {
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
         objects[i]->Render(seleccion, reflejo);
     }
 }
@@ -658,15 +682,28 @@ void __fastcall TEscena::Render()
     glm::mat4 rotateMatrix;
 
     glClearColor(0.0, 0.7, 0.9, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    TPrimitiva *car = escena.GetCar(escena.seleccion);
 
-    // Cálculo de la vista (cámara)
     viewMatrix      = glm::mat4(1.0f);
     rotateMatrix    = glm::make_mat4(view_rotate);
-    viewMatrix      = glm::translate(viewMatrix,glm::vec3(view_position[0], view_position[1], view_position[2]));
-    viewMatrix      = viewMatrix*rotateMatrix;
-    viewMatrix      = glm::scale(viewMatrix,glm::vec3(scale/100.0, scale/100.0, scale/100.0));
+
+    if(camera_type == 0){
+        viewMatrix      = glm::translate(viewMatrix,glm::vec3(view_position[0], view_position[1], view_position[2]));
+        viewMatrix      = viewMatrix*rotateMatrix;
+        viewMatrix      = glm::scale(viewMatrix,glm::vec3(scale/100.0, scale/100.0, scale/100.0));
+    }else if(camera_type == 1){
+        viewMatrix      = glm::translate(viewMatrix,glm::vec3(-car->tx, car->ty - 2, car->tz));
+        rotateMatrix    = glm::rotate(rotateMatrix, (float) glm::radians(car->gc), glm::vec3(0,1,0));
+        viewMatrix      = viewMatrix*rotateMatrix;
+        viewMatrix      = glm::scale(viewMatrix,glm::vec3(scale/100.0, scale/100.0, scale/100.0));
+    }else if(camera_type == 2){
+        viewMatrix      = glm::translate(viewMatrix,glm::vec3(view_position[0], view_position[1] + 10, view_position[2]));
+        viewMatrix      = viewMatrix*rotateMatrix;
+        viewMatrix      = glm::scale(viewMatrix,glm::vec3(scale/100.0, scale/100.0, scale/100.0));
+    }
+    // Cálculo de la vista (cámara)
 
     glUniform1i(uLuz0Location, gui.light0_enabled);
     glUniformMatrix4fv(uVMatrixLocation, 1, GL_FALSE, glm::value_ptr(viewMatrix)); // Para la luz matrix view pero sin escalado!
@@ -679,7 +716,7 @@ void __fastcall TEscena::Render()
 
     glutSwapBuffers();
 }
-
+/*
 void __fastcall TEscena:: processSelection(int xx, int yy) {
 
     unsigned char res[4];
@@ -722,10 +759,24 @@ void __fastcall TEscena::RenderSelection()
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 }
-
+*/
 // Selecciona un objeto a través del ratón
 void __fastcall TEscena::Pick3D(int mouse_x, int mouse_y)
 {
+    unsigned char index[4];
+    GLint viewport[4];
+
+    glGetIntegerv(GL_VIEWPORT,viewport);
+    glReadPixels(mouse_x,viewport[3]-mouse_y+81,1,1,GL_STENCIL_INDEX,GL_UNSIGNED_INT,&index);
+
+    seleccion=index[0];
+
+    switch(index[0]) {
+        case 0: printf("Nothing Picked \n"); break;
+        case 1: printf("Picked yellow\n"); break;
+        case 2: printf("Picked blue\n"); break;
+        default:printf("Res: %d\n", index[0]);
+    }
 }
 
 // Crea todo el escenario
@@ -743,7 +794,26 @@ void __fastcall TEscena::CrearEscenario()
     TPrimitiva *farola = new TPrimitiva(FAROLA_ID, FAROLA_ID);
     TPrimitiva *fuente= new TPrimitiva(FUENTE_ID, FUENTE_ID);
 
-    car2->colores[0][1] = 0.9;
+    car1->colores[0][0] = 0.0;
+    car1->colores[0][1] = 0.9;
+    car1->colores[0][2] = 0.0;
+    car1->colores[0][3] = 1.0;
+
+    car2->colores[0][0] = 0.9;
+    car2->colores[0][1] = 0.0;
+    car2->colores[0][2] = 0.0;
+    car2->colores[0][3] = 1.0;
+
+    car1->colores_copia[0][0] = 0.0;
+    car1->colores_copia[0][1] = 0.9;
+    car1->colores_copia[0][2] = 0.0;
+    car1->colores_copia[0][3] = 1.0;
+
+    car2->colores_copia[0][0] = 0.9;
+    car2->colores_copia[0][1] = 0.0;
+    car2->colores_copia[0][2] = 0.0;
+    car2->colores_copia[0][3] = 1.0;
+
     car2->tx += 3.5;
 
     edificio1->colores[0][1]=0.8;
@@ -882,6 +952,8 @@ void __fastcall TGui::Init(int main_window) {
     new GLUI_Checkbox( glui, "Permitir Movimiento", &enable_panel2 );
     // Añade una separación
     new GLUI_StaticText( glui, "" );
+    new GLUI_Button( glui, "Cambiar camara", CAMARA_ID, controlCallback );
+    new GLUI_StaticText( glui, "" );
     new GLUI_Button( glui, "Resetear Posicion", RESET_ID, controlCallback );
 
     // Añade una separación
@@ -991,6 +1063,12 @@ void __fastcall TGui::ControlCallback( int control )
             glutSetWindow( glui->get_glut_window_id() );
             break;
         }
+        case CAMARA_ID: {
+            camera_type++;
+            if(camera_type > 2){
+                camera_type = 0;
+            }
+        }
   } // switch
 }
 
@@ -1044,6 +1122,9 @@ void __fastcall TGui::Motion(int x, int y )
 
 void __fastcall TGui::Mouse(int button, int button_state, int x, int y )
 {
-    escena.Pick3D(x, y);
+    if ((button == GLUT_LEFT_BUTTON ) && (button_state == GLUT_DOWN))
+    {
+        escena.Pick3D(x, y);
+    }
 }
 

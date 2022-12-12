@@ -115,7 +115,8 @@ static void SpecialKey(int key, int x, int y)
         case GLUT_KEY_DOWN:   // El coche retrocede
             car->rr -= 8;
             car->gc -= car->gr;
-            car->tz -= 0.2;
+            car->tx -= 0.3*sin(glm::radians(car->gc));
+            car->tz -= 0.3*cos(glm::radians(car->gc));
             break;
         case GLUT_KEY_LEFT:
             if(car->gr < 5.0){
@@ -148,7 +149,7 @@ void Render()
 {
     escena.Render();
 }
-
+/*
 void RenderSelection()
 {
     escena.RenderSelection();
@@ -158,7 +159,7 @@ void processSelection(int xx, int yy)
 {
     escena.processSelection(xx, yy);
 }
-
+*/
 void Idle()
 {
     gui.Idle();
