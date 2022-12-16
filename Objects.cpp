@@ -179,7 +179,7 @@ void __fastcall TPrimitiva::Render(int seleccion, bool reflejo)
                 // Cálculo de la ModelView
                 modelMatrix     = glm::mat4(1.0f); // matriz identidad
 
-                modelMatrix     = glm::translate(modelMatrix, glm::vec3(tx-2, ty, tz-2));
+                modelMatrix     = glm::translate(modelMatrix, glm::vec3(tx-2, ty, tz-4));
                 modelMatrix     = glm::rotate(modelMatrix, (float) glm::radians(ry), glm::vec3(0,1,0)); // rotación alrededor del eje y en radianes
                 modelMatrix = glm::scale(modelMatrix, glm::vec3(1.4, 1.4, 1.4));
 
@@ -679,38 +679,23 @@ void __fastcall TEscena::RenderObjects(bool reflejo) {
 
 void __fastcall TEscena::Render()
 {
-    glm::mat4 rotateMatrix;
-    glm::mat4 targetMatrix;
-
     glClearColor(0.0, 0.7, 0.9, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     TPrimitiva *car = escena.GetCar(escena.seleccion);
 
     viewMatrix      = glm::mat4(1.0f);
-    rotateMatrix    = glm::make_mat4(view_rotate);
-    targetMatrix    = glm::make_mat4(view_rotate);
 
     if(camera_type == 0){
         viewMatrix      = glm::translate(viewMatrix,glm::vec3(view_position[0], view_position[1], view_position[2]));
-        viewMatrix      = viewMatrix*rotateMatrix;
         viewMatrix      = glm::scale(viewMatrix,glm::vec3(scale/100.0, scale/100.0, scale/100.0));
     }else if(camera_type == 1){
-        viewMatrix      = glm::translate(viewMatrix,glm::vec3(-car->tx, car->ty - 2, car->tz));
-        glm::vec3 cameraPos = glm::vec3(car->tx, car->ty - 4, car->tz - 5);
-        //glm::vec3 cameraTarget = glm::vec3(car->tx * glm::cos(glm::radians(car->gc)), 0.0f, car->tz * glm::cos(glm::radians(car->gc)));
-        glm::vec3 cameraTarget = glm::vec3(car->tx, car->ty - 4, car->tz);
-        glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
-        glm::vec3 up = glm::vec3(0.0f, 0.0f, 1.0f);
-        glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
-        glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
-        targetMatrix    = glm::lookAt(cameraPos, cameraTarget, up);
-        viewMatrix      = viewMatrix*targetMatrix;
+        viewMatrix    = glm::rotate(viewMatrix, (float) glm::radians(180.0 - car->gc), glm::vec3(0,1,0));
+        viewMatrix      = glm::translate(viewMatrix,glm::vec3(-car->tx, car->ty - 2, -car->tz));
         viewMatrix      = glm::scale(viewMatrix,glm::vec3(scale/100.0, scale/100.0, scale/100.0));
     }else if(camera_type == 2){
-        viewMatrix      = glm::translate(viewMatrix,glm::vec3(view_position[0], view_position[1] - 20, view_position[2]));
-        //rotateMatrix    = glm::rotate(rotateMatrix, (float) glm::radians(-90.0), glm::vec3(1,0,0));
-        viewMatrix      = viewMatrix*rotateMatrix;
+        viewMatrix      = glm::rotate(viewMatrix, (float) glm::radians(90.0), glm::vec3(1,0,0));
+        viewMatrix      = glm::translate(viewMatrix,glm::vec3(view_position[0], -50.0, view_position[2] - 10.0));
         viewMatrix      = glm::scale(viewMatrix,glm::vec3(scale/100.0, scale/100.0, scale/100.0));
     }
     // Cálculo de la vista (cámara)
