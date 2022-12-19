@@ -149,17 +149,7 @@ void Render()
 {
     escena.Render();
 }
-/*
-void RenderSelection()
-{
-    escena.RenderSelection();
-}
 
-void processSelection(int xx, int yy)
-{
-    escena.processSelection(xx, yy);
-}
-*/
 void Idle()
 {
     gui.Idle();
