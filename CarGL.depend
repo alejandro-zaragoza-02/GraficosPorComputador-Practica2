@@ -1858,11 +1858,11 @@
 1667824310 source:c:\users\alejandro\documents\gc\cargl.v2.2 (shaders)\shader.cpp
 	"Shader.h"
 
-1671465273 source:c:\users\zetap\documents\gc\gc-p2\main.cpp
+1671207852 source:c:\users\zetap\documents\gc\gc-p2\main.cpp
 	"Objects.h"
 	<GL\glui.h>
 
-1671465234 c:\users\zetap\documents\gc\gc-p2\objects.h
+1671207852 c:\users\zetap\documents\gc\gc-p2\objects.h
 	"Shader.h"
 	"Program.h"
 	<GL/glui.h>
@@ -1881,11 +1881,10 @@
 	<vector>
 	<GL/glew.h>
 
-1671465671 source:c:\users\zetap\documents\gc\gc-p2\objects.cpp
+1671210253 source:c:\users\zetap\documents\gc\gc-p2\objects.cpp
 	"Objects.h"
 	<GL/glui.h>
 	"load3ds.c"
-	"loadjpeg.c"
 
 1670608068 c:\users\zetap\documents\gc\gc-p2\load3ds.c
 	<math.h>
@@ -1936,8 +1935,4 @@
 
 1667824310 source:c:\users\alejandro\documents\gc\gc-p2\shader.cpp
 	"Shader.h"
-
-1670608068 c:\users\zetap\documents\gc\gc-p2\loadjpeg.c
-	<stdio.h>
-	<malloc.h>
 

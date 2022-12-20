@@ -74,8 +74,6 @@
 #define U_VMATRIX               "u_VMatrix"
 #define U_COLOR                 "u_Color"
 #define U_LUZ0                  "u_Luz0"
-#define A_UV                    "a_UV"
-#define U_TEXTUREUNIT           "u_TextureUnit"
 
 //************************************************************** Clase TPrimtiva
 
@@ -117,9 +115,6 @@ public: // Atributos de la clase
         TPrimitiva  *cars[10];
         TPrimitiva  *objects[100];
 
-        int uTextureUnitLocation;
-        int aUVLocation;
-        GLuint texturas[10]; // Cambiar en funcion de las texturas
         // Handles de los attributes y uniforms
         int aPositionLocation;
         int aNormalLocation;
@@ -183,8 +178,6 @@ public: // Métodos
 		TPrimitiva __fastcall *GetCar(int id);
 
 		void __fastcall Pick3D(int mouse_x, int mouse_y);
-
-		void paraCargarLasImagenes();
 
 
 };
