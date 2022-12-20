@@ -74,6 +74,8 @@
 #define U_VMATRIX               "u_VMatrix"
 #define U_COLOR                 "u_Color"
 #define U_LUZ0                  "u_Luz0"
+#define A_UV                    "a_UV"
+#define U_TEXTUREUNIT           "u_TextureUnit"
 
 //************************************************************** Clase TPrimtiva
 
@@ -123,6 +125,9 @@ public: // Atributos de la clase
 		int uVMatrixLocation;
 		int uColorLocation;
 		int uLuz0Location;
+        int uTextureUnitLocation;
+        int aUVLocation;
+        GLuint texturas[10];
 
 		glm::mat4 projectionMatrix; // Almacena la matriz de proyección
         glm::mat4 viewMatrix;       // Almacena la matriz de la vista (cámara)
@@ -179,7 +184,7 @@ public: // Métodos
 
 		void __fastcall Pick3D(int mouse_x, int mouse_y);
 
-
+        void paraCargarImagenes();
 };
 
 //************************************************************** Clase TGui

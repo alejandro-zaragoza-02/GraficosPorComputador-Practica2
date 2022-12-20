@@ -17,6 +17,7 @@
 #include <GL/glui.h>
 
 #include "load3ds.c"
+#include "loadjpeg.c"
 
 // Variable para inicializar los vectores correpondientes con los valores iniciales
 GLfloat light0_ambient_c[4]  = {   0.2f,   0.2f,  0.2f, 1.0f };
@@ -404,6 +405,12 @@ void __fastcall TPrimitiva::Render(int seleccion, bool reflejo)
 
                 glUniformMatrix4fv(escena.uMVMatrixLocation, 1, GL_FALSE, &modelViewMatrix[0][0]);
 
+                //glActiveTexture(GL_TEXTURE0);
+                //glBindTexture(GL_TEXTURE_2D, escena.texturas[0]);
+                glVertexAttribPointer(escena.aPositionLocation, POSITION_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, modelo0);
+                glVertexAttribPointer(escena.aNormalLocation, NORMAL_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, modelo0+3);
+                //glVertexAttribPointer(escena.aUVLocation, UV_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, modelo0+6);
+
                 glDrawArrays(GL_TRIANGLES, 0, num_vertices0);
 
                 modelMatrix     = glm::mat4(1.0f);
@@ -415,6 +422,12 @@ void __fastcall TPrimitiva::Render(int seleccion, bool reflejo)
                 modelViewMatrix = escena.viewMatrix * modelMatrix;
 
                 glUniformMatrix4fv(escena.uMVMatrixLocation, 1, GL_FALSE, &modelViewMatrix[0][0]);
+
+                //glActiveTexture(GL_TEXTURE0);
+                //glBindTexture(GL_TEXTURE_2D, escena.texturas[0]);
+                glVertexAttribPointer(escena.aPositionLocation, POSITION_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, modelo0);
+                glVertexAttribPointer(escena.aNormalLocation, NORMAL_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, modelo0+3);
+                //glVertexAttribPointer(escena.aUVLocation, UV_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, modelo0+6);
 
                 glDrawArrays(GL_TRIANGLES, 0, num_vertices0);
             }
@@ -506,10 +519,6 @@ TEscena::TEscena() {
     last_x = 0;
     last_y = 0;
 
-    GLuint texturas[10];    // vector para almacenar las texturas
-    unsigned char *pixeles;
-    int ancho, alto;
-
     memcpy(view_position, view_position_c, 3*sizeof(float));
     memcpy(view_rotate, view_rotate_c, 16*sizeof(float));
 
@@ -571,12 +580,17 @@ void __fastcall TEscena::InitGL()
 
     aPositionLocation=shaderProgram->attrib(A_POSITION);
     aNormalLocation=shaderProgram->attrib(A_NORMAL);
+    aUVLocation=shaderProgram->attrib(A_UV);
 
     uProjectionMatrixLocation=shaderProgram->uniform(U_PROJECTIONMATRIX);
     uMVMatrixLocation=shaderProgram->uniform(U_MVMATRIX);
     uVMatrixLocation=shaderProgram->uniform(U_VMATRIX);
     uColorLocation=shaderProgram->uniform(U_COLOR);
     uLuz0Location=shaderProgram->uniform(U_LUZ0);
+
+
+    uTextureUnitLocation=shaderProgram->uniform(U_TEXTUREUNIT);
+    glUniform1f(uTextureUnitLocation, 0);
 
     /*
     std::cout << "a_Position Location: " << aPositionLocation << std::endl;
@@ -592,14 +606,35 @@ void __fastcall TEscena::InitGL()
     // Habilitamos el paso de attributes
     glEnableVertexAttribArray(aPositionLocation);
     glEnableVertexAttribArray(aNormalLocation);
+    glEnableVertexAttribArray(aUVLocation);
 
     // Estableciendo la matriz de proyección perspectiva
     GLUI_Master.get_viewport_area( &tx, &ty, &tw, &th );
     xy_aspect = (float)tw / (float)th;
     projectionMatrix = glm::perspective(45.0f, xy_aspect, 0.1f, 1000.0f);
     glUniformMatrix4fv(uProjectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+    paraCargarImagenes();
 }
 
+void TEscena::paraCargarImagenes(){
+    unsigned char *pixeles;
+    int ancho,alto;
+
+    glGenTextures(10, escena.texturas);
+    pixeles = LoadJPEG("../../Texturas/TexturaContenedor.jpg",&ancho, &alto);
+    glBindTexture(GL_TEXTURE_2D, escena.texturas[0]);
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, ancho, alto, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixeles);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    /*
+    pixeles = LoadJPEG("../../Texturas/STOP.jpg",&ancho, &alto);
+    glBindTexture(GL_TEXTURE_2D, escena.texturas[1]);
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, ancho, alto, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixeles);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    */
+    free(pixeles);
+}
 
 /************************** TEscena::AddCar(TPrimitiva *car) *****************/
 
@@ -685,17 +720,22 @@ void __fastcall TEscena::Render()
     TPrimitiva *car = escena.GetCar(escena.seleccion);
 
     viewMatrix      = glm::mat4(1.0f);
+    glm::mat4 rotateMatrix;
+    rotateMatrix    = glm::make_mat4(view_rotate);
 
     if(camera_type == 0){
+        viewMatrix      = viewMatrix * rotateMatrix;
         viewMatrix      = glm::translate(viewMatrix,glm::vec3(view_position[0], view_position[1], view_position[2]));
         viewMatrix      = glm::scale(viewMatrix,glm::vec3(scale/100.0, scale/100.0, scale/100.0));
     }else if(camera_type == 1){
-        viewMatrix    = glm::rotate(viewMatrix, (float) glm::radians(180.0 - car->gc), glm::vec3(0,1,0));
-        viewMatrix      = glm::translate(viewMatrix,glm::vec3(-car->tx, car->ty - 2, -car->tz));
+        rotateMatrix    = glm::rotate(rotateMatrix, (float) glm::radians(180.0 - car->gc), glm::vec3(0,1,0));
+        viewMatrix      = viewMatrix * rotateMatrix;
+        viewMatrix      = glm::translate(viewMatrix,glm::vec3(-car->tx + view_position[0], car->ty + view_position[1], -car->tz + view_position[2] + 9));
         viewMatrix      = glm::scale(viewMatrix,glm::vec3(scale/100.0, scale/100.0, scale/100.0));
     }else if(camera_type == 2){
-        viewMatrix      = glm::rotate(viewMatrix, (float) glm::radians(90.0), glm::vec3(1,0,0));
-        viewMatrix      = glm::translate(viewMatrix,glm::vec3(view_position[0], -50.0, view_position[2] - 10.0));
+        rotateMatrix      = glm::rotate(rotateMatrix, (float) glm::radians(90.0), glm::vec3(1,0,0));
+        viewMatrix      = viewMatrix * rotateMatrix;
+        viewMatrix      = glm::translate(viewMatrix,glm::vec3(view_position[0], -50.0 + view_position[1], view_position[2] - 10.0));
         viewMatrix      = glm::scale(viewMatrix,glm::vec3(scale/100.0, scale/100.0, scale/100.0));
     }
     // Cálculo de la vista (cámara)
@@ -711,50 +751,7 @@ void __fastcall TEscena::Render()
 
     glutSwapBuffers();
 }
-/*
-void __fastcall TEscena:: processSelection(int xx, int yy) {
 
-    unsigned char res[4];
-    GLint viewport[4];
-
-    escena.renderSelection();
-
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    glReadPixels(xx, viewport[3] - yy, 1,1,GL_RGBA, GL_UNSIGNED_BYTE, &res);
-    switch(res[0]) {
-        case 0: printf("Nothing Picked \n"); break;
-        case 1: printf("Picked yellow\n"); break;
-        case 2: printf("Picked red\n"); break;
-        case 3: printf("Picked green\n"); break;
-        case 4: printf("Picked blue\n"); break;
-        default:printf("Res: %d\n", res[0]);
-    }
-}
-
-void __fastcall TEscena::RenderSelection()
-{
-    glm::mat4 rotateMatrix;
-
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    // Cálculo de la vista (cámara)
-    viewMatrix      = glm::mat4(1.0f);
-    rotateMatrix    = glm::make_mat4(view_rotate);
-    viewMatrix      = glm::translate(viewMatrix,glm::vec3(view_position[0], view_position[1], view_position[2]));
-    viewMatrix      = viewMatrix*rotateMatrix;
-    viewMatrix      = glm::scale(viewMatrix,glm::vec3(scale/100.0, scale/100.0, scale/100.0));
-
-    glUniform1i(uLuz0Location, gui.light0_enabled);
-    glUniformMatrix4fv(uVMatrixLocation, 1, GL_FALSE, glm::value_ptr(viewMatrix)); // Para la luz matrix view pero sin escalado!
-
-    // Dibujar coches
-    RenderCars(seleccion);
-
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-}
-*/
 // Selecciona un objeto a través del ratón
 void __fastcall TEscena::Pick3D(int mouse_x, int mouse_y)
 {
